@@ -510,7 +510,7 @@
 
   <script>
     // Configuration - Update this with your backend URL
-    const BACKEND_URL = 'https://aaf5fe64ef5d.ngrok-free.app'; // Replace with your actual backend URL
+    const BACKEND_URL = 'https://your-backend-url.com'; // Replace with your actual backend URL
     
     // Listen for messages from the popup window
     window.addEventListener('message', function(event) {
@@ -768,24 +768,40 @@
         });
         const result = await response.json();
         if (result.success) {
+          // Update completion status
           document.getElementById('completionStatus').textContent = '🎉 User registration completed successfully!';
           document.getElementById('timer').style.display = 'none';
           
-          // Show action buttons instead of auto-redirecting
-          document.getElementById('actionButtons').style.display = 'flex';
-          
-          // Optional: Auto-redirect after longer period (30 seconds)
+          // Show action buttons with a short delay for better UX
           setTimeout(() => {
-            showStatus('Auto-redirecting to registration page...', 'warning');
+            const actionButtons = document.getElementById('actionButtons');
+            actionButtons.style.display = 'flex';
+            console.log('Action buttons displayed');
+            
+            // Add a subtle highlight effect
+            actionButtons.style.animation = 'pulse-glow 2s ease-in-out';
+          }, 1000);
+          
+          // Optional: Auto-redirect after longer period (60 seconds instead of 30)
+          setTimeout(() => {
+            showStatus('Auto-redirecting to registration page in 5 seconds...', 'warning');
             setTimeout(() => {
               window.location.reload();
-            }, 2000);
-          }, 30000);
+            }, 5000);
+          }, 60000);
         } else {
           showStatus(`Error: ${result.message}`, 'error');
+          console.error('Registration completion failed:', result);
         }
       } catch (error) {
         showStatus(`Error: ${error.message}`, 'error');
+        console.error('Registration completion error:', error);
+        
+        // Show action buttons anyway if there's an error, so user isn't stuck
+        setTimeout(() => {
+          document.getElementById('actionButtons').style.display = 'flex';
+          showStatus('Registration may have completed. Try using the system or return to registration.', 'warning');
+        }, 2000);
       }
     }
 
