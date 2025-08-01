@@ -523,6 +523,8 @@
     let outlookRedirectUri = BACKEND_URL;
     let gmailRedirectUri = BACKEND_URL;
 
+    console.log("👉 BACKEND_URL:", BACKEND_URL);
+
     // Try to fetch config from backend, fallback to environment variable
     fetch(`${BACKEND_URL}/api/config`)
       .then(response => response.json())
