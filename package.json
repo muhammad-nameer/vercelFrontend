@@ -10,8 +10,5 @@
   },
   "keywords": ["email", "whatsapp", "bridge", "frontend", "static"],
   "author": "Shabana Team",
-  "license": "MIT",
-  "devDependencies": {
-    "@vercel/static": "^1.0.0"
-  }
+  "license": "MIT"
 }
