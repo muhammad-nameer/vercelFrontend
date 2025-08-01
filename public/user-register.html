@@ -669,7 +669,9 @@
             clearInterval(checkAuth);
             verifyEmailAuthentication();
           }
-        } catch (e) {}
+        } catch (e) {
+          console.error("Error checking auth window:", e);
+        }
       }, 1000);
     }
 
