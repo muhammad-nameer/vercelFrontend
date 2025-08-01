@@ -526,7 +526,13 @@
     console.log("👉 BACKEND_URL:", BACKEND_URL);
 
     // Try to fetch config from backend, fallback to environment variable
-    fetch(`${BACKEND_URL}/api/config`)
+    // fetch(`${BACKEND_URL}/api/config`)
+    fetch(`${BACKEND_URL}/api/config`, {
+        method: "GET",
+        headers: {
+          "ngrok-skip-browser-warning": "69420",
+        },
+      })
       .then(response => response.json())
       .then(config => {
         console.log("Received config:", config);
@@ -692,7 +698,13 @@
         await new Promise(resolve => setTimeout(resolve, delayMs));
         
         // Make the API request to check authentication status
-        const response = await fetch(`${BACKEND_URL}/api/verify-auth/${userID}`);
+        // const response = await fetch(`${BACKEND_URL}/api/verify-auth/${userID}`);
+        const response = await fetch(`${BACKEND_URL}/api/verify-auth/${userID}`, {
+          headers: {
+            "ngrok-skip-browser-warning": "69420",
+          },
+        });
+
         const result = await response.json();
         console.log("Auth verification result:", result);
         
