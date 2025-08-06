@@ -203,17 +203,18 @@
     }
 
     .status {
-      margin: 20px auto;
-      padding: 12px 20px;
-      border-radius: 10px;
+      margin: 15px 0;
+      padding: 10px 15px;
+      border-radius: 8px;
       font-weight: 500;
       text-align: center;
       width: 100%;
       max-width: 100%;
-      font-size: clamp(13px, 3vw, 14px);
+      font-size: clamp(12px, 2.5vw, 13px);
       line-height: 1.3;
       display: block;
       word-wrap: break-word;
+      box-sizing: border-box;
     }
 
     .success {
@@ -447,6 +448,12 @@
       textarea {
         font-size: 13px !important;
       }
+      
+      .status {
+        font-size: 11px;
+        padding: 8px 12px;
+        margin: 10px 0;
+      }
     }
 
     @media (max-width: 480px) {
@@ -510,6 +517,12 @@
 
       .info-box ol, .info-box ul {
         padding-left: 15px;
+      }
+      
+      .status {
+        font-size: 10px;
+        padding: 6px 10px;
+        margin: 8px 0;
       }
     }
 
@@ -629,7 +642,7 @@
       </div>
     </div>
 
-    <div id="statusMessages" style="text-align:center; width: 100%; margin-top: 15px;"></div>
+    <div id="statusMessages" style="width: 100%; margin-top: 10px;"></div>
   </div>
 
   <script>
