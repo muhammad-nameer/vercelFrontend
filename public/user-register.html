@@ -341,6 +341,24 @@
       font-size: clamp(13px, 3vw, 14px);
     }
 
+    .auto-detection-status {
+      background-color: rgba(0, 255, 132, 0.1);
+      border: 1px solid #00ff84;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 20px;
+    }
+
+    .auto-detection-status p {
+      margin: 5px 0;
+      color: #00ff84;
+    }
+
+    .auto-detection-status small {
+      color: #66ffaa;
+      font-size: 12px;
+    }
+
     .email-providers-container {
       display: flex;
       justify-content: center;
@@ -496,6 +514,10 @@
       </div>
 
       <div class="manual-verification">
+        <div class="auto-detection-status">
+          <p><strong>🔄 Automatic Detection Active:</strong></p>
+          <p><small>System is automatically checking for your verification. Once you send the code, you'll be redirected automatically!</small></p>
+        </div>
         <p><strong>Or manually verify once you've sent the message:</strong></p>
         <button id="checkVerificationBtn" onclick="checkVerificationStatus()">Check Verification Status</button>
         <button id="generateNewCodeBtn" onclick="generateNewCode()" disabled>Generate New Code</button>
@@ -641,6 +663,14 @@
         document.getElementById('userExistsStep').classList.add('active');
       } else if (step === '1.5') {
         document.getElementById('step1_5').classList.add('active');
+        // Start automatic verification polling immediately when verification step is shown
+        // This ensures detection works even if user manually sends the code without clicking our button
+        setTimeout(() => {
+          if (verificationId) {
+            startVerificationPolling();
+            console.log('🔄 Auto-polling started for verification detection');
+          }
+        }, 1000); // Small delay to ensure UI is ready
       } else {
         document.getElementById(`step${step}`).classList.add('active');
         currentStep = step;
@@ -961,6 +991,14 @@
     }
 
     function startVerificationPolling() {
+      // Prevent multiple polling intervals
+      if (verificationPolling) {
+        console.log('🔄 Verification polling already active');
+        return;
+      }
+
+      console.log('🚀 Starting automatic verification polling...');
+      
       // Poll every 3 seconds to check if verification is complete
       verificationPolling = setInterval(async () => {
         try {
@@ -976,6 +1014,7 @@
           const result = await response.json();
           
           if (result.success && result.verified) {
+            console.log('🎉 Verification detected automatically!');
             clearInterval(verificationPolling);
             verificationPolling = null;
             clearInterval(verificationTimerInterval);
@@ -986,6 +1025,8 @@
             setTimeout(async () => {
               await completeUserRegistration();
             }, 2000);
+          } else {
+            console.log('⏳ Verification still pending...');
           }
         } catch (error) {
           // Silently continue polling on network errors
@@ -996,6 +1037,7 @@
       // Stop polling after 5 minutes (when code expires)
       setTimeout(() => {
         if (verificationPolling) {
+          console.log('⏰ Verification polling stopped (5 minute timeout)');
           clearInterval(verificationPolling);
           verificationPolling = null;
         }
