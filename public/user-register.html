@@ -632,6 +632,7 @@
     let verificationTimeLeft = 300; // 5 minutes in seconds
     let generatedCode = ''; // Store the generated verification code
     let systemWhatsAppNumber = '+922134327805'; // System's WhatsApp number (admin number)
+    let verificationPolling = null; // For auto-polling verification status
 
     function showStep(step) {
       clearAllIntervals();
@@ -654,6 +655,10 @@
       if (verificationTimerInterval) {
         clearInterval(verificationTimerInterval);
         verificationTimerInterval = null;
+      }
+      if (verificationPolling) {
+        clearInterval(verificationPolling);
+        verificationPolling = null;
       }
     }
 
@@ -806,6 +811,9 @@
       // Update UI to show that user should now check verification
       showVerificationStatus('✅ WhatsApp opened! Send the code and then click "Check Verification Status"', 'success');
       
+      // Start auto-polling for verification after user opens WhatsApp
+      startVerificationPolling();
+      
       // Show manual instructions after 3 seconds if still on page
       setTimeout(() => {
         if (document.hasFocus()) {
@@ -923,6 +931,10 @@
 
     async function completeUserRegistration() {
       try {
+        // Stop polling since we're completing
+        clearInterval(verificationPolling);
+        verificationPolling = null;
+        
         const response = await fetch(`${BACKEND_URL}/api/complete-verification`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -936,13 +948,58 @@
         const result = await response.json();
         
         if (result.success) {
-          showStep(2); // Go to email authentication
+          showVerificationStatus('🎉 Verification completed! Proceeding to email setup...', 'success');
+          setTimeout(() => {
+            showStep(2); // Go to email authentication
+          }, 1500);
         } else {
           showVerificationStatus(`❌ ${result.error}`, 'error');
         }
       } catch (error) {
         showVerificationStatus(`Network error: ${error.message}`, 'error');
       }
+    }
+
+    function startVerificationPolling() {
+      // Poll every 3 seconds to check if verification is complete
+      verificationPolling = setInterval(async () => {
+        try {
+          const response = await fetch(`${BACKEND_URL}/api/check-verification`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              verification_id: verificationId,
+              whatsapp_number: userID
+            })
+          });
+
+          const result = await response.json();
+          
+          if (result.success && result.verified) {
+            clearInterval(verificationPolling);
+            verificationPolling = null;
+            clearInterval(verificationTimerInterval);
+            
+            showVerificationStatus('🎉 Phone verified automatically! Proceeding to email setup...', 'success');
+            
+            // Complete user registration automatically
+            setTimeout(async () => {
+              await completeUserRegistration();
+            }, 2000);
+          }
+        } catch (error) {
+          // Silently continue polling on network errors
+          console.log('Polling error (will retry):', error.message);
+        }
+      }, 3000); // Check every 3 seconds
+      
+      // Stop polling after 5 minutes (when code expires)
+      setTimeout(() => {
+        if (verificationPolling) {
+          clearInterval(verificationPolling);
+          verificationPolling = null;
+        }
+      }, 300000); // 5 minutes
     }
 
     async function generateNewCode() {
