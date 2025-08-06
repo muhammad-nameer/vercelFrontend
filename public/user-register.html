@@ -295,6 +295,52 @@
       margin-top: 15px;
     }
 
+    .verification-code-display {
+      background: linear-gradient(45deg, #1a3a5c, #0f2c45);
+      border: 2px solid #00ff84;
+      border-radius: 15px;
+      padding: 20px;
+      margin: 20px 0;
+      text-align: center;
+      box-shadow: 0 0 15px rgba(0, 255, 132, 0.3);
+    }
+
+    .verification-code-display span {
+      font-size: clamp(24px, 6vw, 32px);
+      font-weight: bold;
+      color: #00ff84;
+      letter-spacing: 3px;
+      font-family: 'Courier New', monospace;
+    }
+
+    .whatsapp-action {
+      margin: 25px 0;
+      text-align: center;
+    }
+
+    .admin-number-display {
+      margin-top: 10px;
+    }
+
+    .admin-number-display span {
+      font-weight: bold;
+      color: #66ffaa;
+    }
+
+    .manual-verification {
+      margin-top: 25px;
+      padding: 15px;
+      background-color: rgba(15, 30, 50, 0.7);
+      border-radius: 12px;
+      border: 1px solid #2b445c;
+    }
+
+    .manual-verification p {
+      margin-bottom: 15px;
+      color: #66ffaa;
+      font-size: clamp(13px, 3vw, 14px);
+    }
+
     .email-providers-container {
       display: flex;
       justify-content: center;
@@ -415,16 +461,47 @@
     <h1>📧 User Registration</h1>
     <p class="subtitle">Register your email to communicate through admin's WhatsApp</p>
 
-    <!-- Step 1: WhatsApp Number Input (no QR scanning) -->
+    <!-- Step 1: WhatsApp Number Input -->
     <div id="step1" class="step active">
       <h3>Your WhatsApp Number</h3>
       <div class="info-box admin-info">
-        <p><strong>📱 New System:</strong> You only provide your WhatsApp number for identification. All communication happens through the admin's WhatsApp number.</p>
+        <p><strong>📱 Phone Verification Required:</strong> We'll send a verification code to your WhatsApp number to confirm it's yours.</p>
       </div>
       <div class="form-group">
-        <input type="tel" id="whatsappNumber" placeholder="e.g., 923001234567" required />
+        <input type="tel" id="whatsappNumber" placeholder="e.g., +923001234567" required />
       </div>
-      <button id="startBtn" onclick="startUserRegistration()">Continue to Email</button>
+      <button id="startBtn" onclick="requestVerification()">Send Verification Code</button>
+    </div>
+
+    <!-- Step 1.5: WhatsApp Verification -->
+    <div id="step1_5" class="step">
+      <h3>📱 WhatsApp Verification</h3>
+      <div class="info-box">
+        <p><strong>✅ Verification Code Generated!</strong></p>
+        <p>Send this code to our WhatsApp number to verify your account:</p>
+        <div class="verification-code-display">
+          <span id="generatedCode">123456</span>
+        </div>
+        <p>Code expires in <span id="verificationTimer">5:00</span></p>
+      </div>
+      
+      <div class="whatsapp-action">
+        <p><strong>📲 Click the button below to open WhatsApp and send the code:</strong></p>
+        <button id="openWhatsAppBtn" class="whatsapp-button" onclick="openWhatsAppWithCode()">
+          📱 Send Code via WhatsApp
+        </button>
+        <div class="admin-number-display">
+          <p><small>System Number: <span id="systemNumber">+923001234567</span></small></p>
+        </div>
+      </div>
+
+      <div class="manual-verification">
+        <p><strong>Or manually verify once you've sent the message:</strong></p>
+        <button id="checkVerificationBtn" onclick="checkVerificationStatus()">Check Verification Status</button>
+        <button id="generateNewCodeBtn" onclick="generateNewCode()" disabled>Generate New Code</button>
+      </div>
+      
+      <div id="verificationStatus" class="status" style="display: none;"></div>
     </div>
 
     <!-- User Exists Confirmation -->
@@ -548,14 +625,21 @@
     let userID = '';
     let emailAuthenticated = false;
     let timerInterval;
+    let verificationTimerInterval;
     let timeLeft = 3; // Shorter timer for user registration
     let userEmailProvider = ''; // Track the email provider selected by the user
+    let verificationId = ''; // Track verification session
+    let verificationTimeLeft = 300; // 5 minutes in seconds
+    let generatedCode = ''; // Store the generated verification code
+    let systemWhatsAppNumber = '+923001234567'; // System's WhatsApp number
 
     function showStep(step) {
       clearAllIntervals();
       document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
       if (step === 'userExists') {
         document.getElementById('userExistsStep').classList.add('active');
+      } else if (step === '1.5') {
+        document.getElementById('step1_5').classList.add('active');
       } else {
         document.getElementById(`step${step}`).classList.add('active');
         currentStep = step;
@@ -567,6 +651,10 @@
         clearInterval(timerInterval);
         timerInterval = null;
       }
+      if (verificationTimerInterval) {
+        clearInterval(verificationTimerInterval);
+        verificationTimerInterval = null;
+      }
     }
 
     function showStatus(message, type = 'success') {
@@ -575,7 +663,47 @@
       setTimeout(() => statusDiv.innerHTML = '', 5000);
     }
 
-    async function startUserRegistration() {
+    function showVerificationStatus(message, type = 'success') {
+      const statusDiv = document.getElementById('verificationStatus');
+      statusDiv.innerHTML = message;
+      statusDiv.className = `status ${type}`;
+      statusDiv.style.display = 'block';
+      setTimeout(() => statusDiv.style.display = 'none', 5000);
+    }
+
+    function startVerificationTimer() {
+      verificationTimeLeft = 300; // 5 minutes
+      const timerElement = document.getElementById('verificationTimer');
+      const generateNewBtn = document.getElementById('generateNewCodeBtn');
+      
+      verificationTimerInterval = setInterval(() => {
+        const minutes = Math.floor(verificationTimeLeft / 60);
+        const seconds = verificationTimeLeft % 60;
+        timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        verificationTimeLeft--;
+        
+        if (verificationTimeLeft < 0) {
+          clearInterval(verificationTimerInterval);
+          timerElement.textContent = 'Code Expired';
+          generateNewBtn.disabled = false;
+          generateNewBtn.textContent = 'Generate New Code';
+        }
+      }, 1000);
+      
+      // Enable generate new code button after 2 minutes
+      setTimeout(() => {
+        generateNewBtn.disabled = false;
+        generateNewBtn.textContent = 'Generate New Code';
+      }, 120000); // 2 minutes
+    }
+
+    function generateVerificationCode() {
+      // Generate a random 6-digit code
+      return Math.floor(100000 + Math.random() * 900000).toString();
+    }
+
+    async function requestVerification() {
       const whatsappNumber = document.getElementById('whatsappNumber').value.trim();
       const startBtn = document.getElementById('startBtn');
 
@@ -584,34 +712,169 @@
         return;
       }
 
+      if (!whatsappNumber.startsWith('+')) {
+        showStatus('Please include country code (e.g., +923001234567)', 'error');
+        return;
+      }
+
       startBtn.disabled = true;
-      startBtn.textContent = 'Processing...';
+      startBtn.textContent = 'Generating Code...';
       userID = whatsappNumber;
 
       try {
-        const response = await fetch(`${BACKEND_URL}/api/user-register`, {
+        // Generate verification code locally
+        generatedCode = generateVerificationCode();
+        
+        // Register the verification request with backend
+        const response = await fetch(`${BACKEND_URL}/api/register-verification`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userID, whatsappNumber })
+          body: JSON.stringify({ 
+            whatsapp_number: whatsappNumber,
+            verification_code: generatedCode
+          })
         });
 
         const result = await response.json();
         
         if (result.success) {
-          showStatus('User registration initiated successfully!', 'success');
-          showStep(2);
-        } else if (result.message === 'userExists') {
-          showStep('userExists');
+          verificationId = result.verification_id;
+          
+          // Display the code and system number
+          document.getElementById('generatedCode').textContent = generatedCode;
+          document.getElementById('systemNumber').textContent = systemWhatsAppNumber;
+          
+          showStatus('Verification code generated!', 'success');
+          showStep('1.5');
+          startVerificationTimer();
         } else {
-          showStatus(`Error: ${result.message}`, 'error');
+          showStatus(`Error: ${result.error}`, 'error');
           startBtn.disabled = false;
-          startBtn.textContent = 'Continue to Email';
+          startBtn.textContent = 'Send Verification Code';
         }
       } catch (error) {
         showStatus(`Network error: ${error.message}`, 'error');
         startBtn.disabled = false;
-        startBtn.textContent = 'Continue to Email';
+        startBtn.textContent = 'Send Verification Code';
       }
+    }
+
+    function openWhatsAppWithCode() {
+      const message = encodeURIComponent(generatedCode);
+      const whatsappUrl = `https://wa.me/${systemWhatsAppNumber.replace('+', '')}?text=${message}`;
+      
+      // Open WhatsApp with the code pre-filled
+      window.open(whatsappUrl, '_blank');
+      
+      // Update UI to show that user should now check verification
+      showVerificationStatus('✅ WhatsApp opened! Send the code and then click "Check Verification Status"', 'success');
+    }
+
+    async function checkVerificationStatus() {
+      const checkBtn = document.getElementById('checkVerificationBtn');
+      checkBtn.disabled = true;
+      checkBtn.textContent = 'Checking...';
+
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/check-verification`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            verification_id: verificationId,
+            whatsapp_number: userID
+          })
+        });
+
+        const result = await response.json();
+        
+        if (result.success && result.verified) {
+          clearInterval(verificationTimerInterval);
+          showVerificationStatus('✅ Phone verified successfully!', 'success');
+          
+          // Complete user registration
+          setTimeout(async () => {
+            await completeUserRegistration();
+          }, 1500);
+        } else if (result.success && !result.verified) {
+          showVerificationStatus('⏳ Verification pending. Please send the code first.', 'warning');
+          checkBtn.disabled = false;
+          checkBtn.textContent = 'Check Verification Status';
+        } else {
+          showVerificationStatus(`❌ ${result.error}`, 'error');
+          checkBtn.disabled = false;
+          checkBtn.textContent = 'Check Verification Status';
+        }
+      } catch (error) {
+        showVerificationStatus(`Network error: ${error.message}`, 'error');
+        checkBtn.disabled = false;
+        checkBtn.textContent = 'Check Verification Status';
+      }
+    }
+
+    async function completeUserRegistration() {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/complete-verification`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            verification_id: verificationId,
+            whatsapp_number: userID,
+            email_provider: userEmailProvider
+          })
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+          showStep(2); // Go to email authentication
+        } else {
+          showVerificationStatus(`❌ ${result.error}`, 'error');
+        }
+      } catch (error) {
+        showVerificationStatus(`Network error: ${error.message}`, 'error');
+      }
+    }
+
+    async function generateNewCode() {
+      const generateBtn = document.getElementById('generateNewCodeBtn');
+      generateBtn.disabled = true;
+      generateBtn.textContent = 'Generating...';
+
+      try {
+        // Generate new code
+        generatedCode = generateVerificationCode();
+        
+        const response = await fetch(`${BACKEND_URL}/api/regenerate-verification`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            verification_id: verificationId,
+            new_verification_code: generatedCode
+          })
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+          document.getElementById('generatedCode').textContent = generatedCode;
+          showVerificationStatus('✅ New code generated!', 'success');
+          startVerificationTimer(); // Restart timer
+        } else {
+          showVerificationStatus(`❌ ${result.error}`, 'error');
+          generateBtn.disabled = false;
+          generateBtn.textContent = 'Generate New Code';
+        }
+      } catch (error) {
+        showVerificationStatus(`Network error: ${error.message}`, 'error');
+        generateBtn.disabled = false;
+        generateBtn.textContent = 'Generate New Code';
+      }
+    }
+
+    async function startUserRegistration() {
+      // This function is now handled by the verification flow
+      // Redirect to verification for compatibility
+      requestVerification();
     }
 
     async function forceRegister() {
