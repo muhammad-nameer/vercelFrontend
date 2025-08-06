@@ -85,10 +85,19 @@
     }
 
     h3 {
-      margin-bottom: 20px;
+      margin-bottom: clamp(15px, 4vw, 20px);
       font-weight: 400;
-      font-size: clamp(16px, 4vw, 20px);
+      font-size: clamp(18px, 5vw, 22px);
       line-height: 1.2;
+      color: #00ff84;
+      text-align: center;
+    }
+
+    .step-description {
+      color: #66ffaa;
+      font-size: clamp(14px, 3.5vw, 16px);
+      text-align: center;
+      margin-bottom: clamp(20px, 5vw, 25px);
     }
 
     .step {
@@ -299,64 +308,61 @@
       background: linear-gradient(45deg, #1a3a5c, #0f2c45);
       border: 2px solid #00ff84;
       border-radius: 15px;
-      padding: 20px;
-      margin: 20px 0;
+      padding: clamp(15px, 4vw, 25px);
+      margin: clamp(15px, 4vw, 25px) 0;
       text-align: center;
       box-shadow: 0 0 15px rgba(0, 255, 132, 0.3);
     }
 
     .verification-code-display span {
-      font-size: clamp(24px, 6vw, 32px);
+      font-size: clamp(28px, 8vw, 36px);
       font-weight: bold;
       color: #00ff84;
-      letter-spacing: 3px;
+      letter-spacing: clamp(2px, 1vw, 4px);
       font-family: 'Courier New', monospace;
+      display: block;
+    }
+
+    .code-timer {
+      color: #66ffaa;
+      font-size: clamp(12px, 3vw, 14px);
+      text-align: center;
+      margin: 10px 0 20px 0;
     }
 
     .whatsapp-action {
-      margin: 25px 0;
       text-align: center;
+      margin: clamp(20px, 5vw, 30px) 0;
     }
 
-    .admin-number-display {
-      margin-top: 10px;
+    .system-number {
+      color: #66ffaa;
+      font-size: clamp(12px, 3vw, 13px);
+      margin-top: 8px;
+      opacity: 0.8;
     }
 
-    .admin-number-display span {
+    .system-number span {
       font-weight: bold;
-      color: #66ffaa;
-    }
-
-    .manual-verification {
-      margin-top: 25px;
-      padding: 15px;
-      background-color: rgba(15, 30, 50, 0.7);
-      border-radius: 12px;
-      border: 1px solid #2b445c;
-    }
-
-    .manual-verification p {
-      margin-bottom: 15px;
-      color: #66ffaa;
-      font-size: clamp(13px, 3vw, 14px);
-    }
-
-    .auto-detection-status {
-      background-color: rgba(0, 255, 132, 0.1);
-      border: 1px solid #00ff84;
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 20px;
-    }
-
-    .auto-detection-status p {
-      margin: 5px 0;
       color: #00ff84;
     }
 
-    .auto-detection-status small {
+    .verification-status {
+      text-align: center;
+      margin-top: clamp(15px, 4vw, 20px);
+    }
+
+    .auto-check {
       color: #66ffaa;
-      font-size: 12px;
+      font-size: clamp(12px, 3vw, 14px);
+      margin: 0;
+      opacity: 0.8;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
     }
 
     .email-providers-container {
@@ -427,20 +433,43 @@
 
     @media (max-width: 480px) {
       .container {
-        padding: 15px 10px;
+        padding: clamp(10px, 3vw, 15px);
+        margin: 10px;
       }
       
       .step {
-        padding: 15px 8px;
+        padding: clamp(12px, 4vw, 15px);
       }
       
       input {
         max-width: 100%;
         padding: 12px 10px;
+        font-size: 16px; /* Prevent zoom on iOS */
+      }
+      
+      .verification-code-display {
+        padding: 15px;
+        margin: 15px 0;
+      }
+      
+      .verification-code-display span {
+        font-size: clamp(24px, 10vw, 32px);
+        letter-spacing: 2px;
+      }
+      
+      .whatsapp-action {
+        margin: 15px 0;
       }
       
       .email-providers-container {
         gap: 10px;
+        flex-direction: column;
+        align-items: center;
+      }
+      
+      .email-provider {
+        min-width: 120px;
+        max-width: 160px;
       }
       
       .gmail-logo-wrapper, .outlook-logo-wrapper {
@@ -476,51 +505,36 @@
 </head>
 <body>
   <div class="container">
-    <h1>📧 User Registration</h1>
-    <p class="subtitle">Register your email to communicate through admin's WhatsApp</p>
+    <h1>📧 Email Registration</h1>
+    <p class="subtitle">Connect your email to start using the system</p>
 
     <!-- Step 1: WhatsApp Number Input -->
     <div id="step1" class="step active">
       <h3>Your WhatsApp Number</h3>
-      <div class="info-box admin-info">
-        <p><strong>📱 Phone Verification Required:</strong> We'll send a verification code to your WhatsApp number to confirm it's yours.</p>
-      </div>
       <div class="form-group">
         <input type="tel" id="whatsappNumber" placeholder="e.g., +923001234567" required />
       </div>
-      <button id="startBtn" onclick="requestVerification()">Send Verification Code</button>
+      <button id="startBtn" onclick="requestVerification()">Continue</button>
     </div>
 
     <!-- Step 1.5: WhatsApp Verification -->
     <div id="step1_5" class="step">
-      <h3>📱 WhatsApp Verification</h3>
-      <div class="info-box">
-        <p><strong>✅ Verification Code Generated!</strong></p>
-        <p>Send this code to our WhatsApp number to verify your account:</p>
-        <div class="verification-code-display">
-          <span id="generatedCode">123456</span>
-        </div>
-        <p>Code expires in <span id="verificationTimer">5:00</span></p>
+      <h3>📱 Verify Your Number</h3>
+      
+      <div class="verification-code-display">
+        <span id="generatedCode">123456</span>
       </div>
+      <p class="code-timer">Expires in <span id="verificationTimer">5:00</span></p>
       
       <div class="whatsapp-action">
-        <p><strong>📲 Click the button below to open WhatsApp and send the code:</strong></p>
         <button id="openWhatsAppBtn" class="whatsapp-button" onclick="openWhatsAppWithCode()">
-          📱 Send Code via WhatsApp
+          📱 Send Code
         </button>
-        <div class="admin-number-display">
-          <p><small>System Number: <span id="systemNumber">+923001234567</span></small></p>
-        </div>
+        <p class="system-number"><span id="systemNumber">+923001234567</span></p>
       </div>
 
-      <div class="manual-verification">
-        <div class="auto-detection-status">
-          <p><strong>🔄 Automatic Detection Active:</strong></p>
-          <p><small>System is automatically checking for your verification. Once you send the code, you'll be redirected automatically!</small></p>
-        </div>
-        <p><strong>Or manually verify once you've sent the message:</strong></p>
-        <button id="checkVerificationBtn" onclick="checkVerificationStatus()">Check Verification Status</button>
-        <button id="generateNewCodeBtn" onclick="generateNewCode()" disabled>Generate New Code</button>
+      <div class="verification-status">
+        <p class="auto-check">🔄 Checking automatically...</p>
       </div>
       
       <div id="verificationStatus" class="status" style="display: none;"></div>
@@ -541,11 +555,8 @@
 
     <!-- Step 2: Email Authentication -->
     <div id="step2" class="step">
-      <h3>📧 Email Authentication</h3>
-      <div class="info-box">
-        <p><strong>✨ What happens next:</strong> After email authentication, you can send messages and documents to the admin's WhatsApp number to interact with the system.</p>
-      </div>
-      <p>Choose your email provider:</p>
+      <h3>📧 Connect Your Email</h3>
+      <p class="step-description">Choose your email provider:</p>
       
       <div class="email-providers-container">
         <div class="email-provider">
@@ -572,34 +583,17 @@
 
     <!-- Step 3: Registration Complete -->
     <div id="step3" class="step">
-      <h3>✅ Registration Complete</h3>
+      <h3>✅ Setup Complete</h3>
       <div id="completionStatus" class="status success"></div>
-      <div class="info-box">
-        <p><strong>🎉 You're all set!</strong></p>
-        <p>To interact with the system:</p>
-        <ul style="text-align: left; display: inline-block;">
-          <li>Send messages to the admin's WhatsApp number</li>
-          <li>Send documents/images for analysis</li>
-          <li>The system will respond through the admin's number</li>
-        </ul>
-      </div>
       
       <!-- Action Buttons -->
       <div id="actionButtons" class="button-group" style="margin-top: 30px; display: none;">
         <button class="whatsapp-button" onclick="startUsingSystem()">
           Start Using System
         </button>
-        <button class="return-button" onclick="returnToRegistration()">
-          Return to Registration
-        </button>
       </div>
       
       <div class="timer" id="timer" style="display: none;"></div>
-      
-      <!-- WhatsApp Contact Info -->
-      <div id="whatsappInfo" class="info-box admin-info" style="display: none; margin-top: 20px;">
-        <p><strong>📱 Next Step:</strong></p>
-        <p>Send your first message to check your email queue and start using the system!</p>
         <p style="font-size: 12px; color: #ffcc66;">Note: This message will check for pending emails or confirm system readiness 📤</p>
       </div>
     </div>
