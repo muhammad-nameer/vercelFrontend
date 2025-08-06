@@ -491,7 +491,7 @@
           📱 Send Code via WhatsApp
         </button>
         <div class="admin-number-display">
-          <p><small>System Number: <span id="systemNumber">+922134327805</span></small></p>
+          <p><small>System Number: <span id="systemNumber">+923001234567</span></small></p>
         </div>
       </div>
 
@@ -631,7 +631,7 @@
     let verificationId = ''; // Track verification session
     let verificationTimeLeft = 300; // 5 minutes in seconds
     let generatedCode = ''; // Store the generated verification code
-    let systemWhatsAppNumber = '+922134327805'; // System's WhatsApp number
+    let systemWhatsAppNumber = '+922134327805'; // System's WhatsApp number (admin number)
 
     function showStep(step) {
       clearAllIntervals();
@@ -713,7 +713,7 @@
       }
 
       if (!whatsappNumber.startsWith('+')) {
-        showStatus('Please include country code (e.g., +922134327805)', 'error');
+        showStatus('Please include country code (e.g., +923001234567)', 'error');
         return;
       }
 
@@ -761,13 +761,123 @@
 
     function openWhatsAppWithCode() {
       const message = encodeURIComponent(generatedCode);
-      const whatsappUrl = `https://wa.me/${systemWhatsAppNumber.replace('+', '')}?text=${message}`;
+      const phoneNumber = systemWhatsAppNumber.replace('+', '');
       
-      // Open WhatsApp with the code pre-filled
-      window.open(whatsappUrl, '_blank');
+      // Detect platform for better URL selection (same logic as startUsingSystem)
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isAndroid = /Android/.test(navigator.userAgent);
+      
+      let primaryUrl, fallbackUrl;
+      
+      if (isMobile) {
+        // Mobile: Prefer app links
+        primaryUrl = `whatsapp://send?phone=${phoneNumber}&text=${message}`;
+        fallbackUrl = `https://wa.me/${phoneNumber}?text=${message}`;
+      } else {
+        // Desktop: Use web version
+        primaryUrl = `https://web.whatsapp.com/send?phone=${phoneNumber}&text=${message}`;
+        fallbackUrl = `https://wa.me/${phoneNumber}?text=${message}`;
+      }
+      
+      // Try to open WhatsApp
+      if (isMobile) {
+        // Mobile: Try app first, then fallback
+        window.location.href = primaryUrl;
+        
+        // If app doesn't open, try web version after 2 seconds
+        setTimeout(() => {
+          if (document.hasFocus()) {
+            window.open(fallbackUrl, '_blank');
+          }
+        }, 2000);
+      } else {
+        // Desktop: Open in new tab
+        const newWindow = window.open(primaryUrl, '_blank');
+        
+        // If that fails, try fallback
+        if (!newWindow) {
+          setTimeout(() => {
+            window.open(fallbackUrl, '_blank');
+          }, 500);
+        }
+      }
       
       // Update UI to show that user should now check verification
       showVerificationStatus('✅ WhatsApp opened! Send the code and then click "Check Verification Status"', 'success');
+      
+      // Show manual instructions after 3 seconds if still on page
+      setTimeout(() => {
+        if (document.hasFocus()) {
+          showCodeInstructions(phoneNumber, generatedCode);
+        }
+      }, 3000);
+    }
+
+    function showCodeInstructions(phoneNumber, code) {
+      // Show manual instructions if automatic redirect fails
+      const instructionsHtml = `
+        <div class="info-box" style="background-color: rgba(0, 255, 132, 0.1); border-color: rgba(0, 255, 132, 0.3); margin-top: 15px;">
+          <p><strong>📱 Manual Verification Steps</strong></p>
+          <p>If WhatsApp didn't open automatically:</p>
+          <ol style="text-align: left; color: #66ffaa;">
+            <li>Open WhatsApp on your device</li>
+            <li>Start a chat with: <strong>+${phoneNumber}</strong></li>
+            <li>Send this verification code:</li>
+          </ol>
+          <div style="background: #102a43; padding: 15px; border-radius: 8px; margin: 10px 0;">
+            <div style="font-size: 24px; font-weight: bold; color: #00ff84; text-align: center; letter-spacing: 3px; font-family: 'Courier New', monospace;">${code}</div>
+          </div>
+          <div style="margin-top: 10px;">
+            <button onclick="copyToClipboard('${code}')">📋 Copy Code</button>
+            <button onclick="openSystemChat()" style="margin-left: 10px;">💬 Open System Chat</button>
+          </div>
+          <p style="font-size: 12px; color: #66ffaa; margin-top: 15px;">
+            💡 After sending the code, click "Check Verification Status" above to continue.
+          </p>
+        </div>
+      `;
+      
+      // Add instructions to the page
+      const statusDiv = document.getElementById('verificationStatus');
+      statusDiv.innerHTML = instructionsHtml;
+      statusDiv.className = 'status success';
+      statusDiv.style.display = 'block';
+    }
+
+    function openSystemChat() {
+      // Open chat with system number directly
+      const phoneNumber = systemWhatsAppNumber.replace('+', '');
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      if (isMobile) {
+        window.location.href = `whatsapp://send?phone=${phoneNumber}`;
+        setTimeout(() => {
+          if (document.hasFocus()) {
+            window.open(`https://wa.me/${phoneNumber}`, '_blank');
+          }
+        }, 2000);
+      } else {
+        const newWindow = window.open(`https://web.whatsapp.com/send?phone=${phoneNumber}`, '_blank');
+        if (!newWindow) {
+          window.open(`https://wa.me/${phoneNumber}`, '_blank');
+        }
+      }
+    }
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        showVerificationStatus('✅ Copied to clipboard!', 'success');
+      }).catch(() => {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showVerificationStatus('✅ Copied to clipboard!', 'success');
+      });
     }
 
     async function checkVerificationStatus() {
